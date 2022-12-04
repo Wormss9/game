@@ -14,9 +14,9 @@ impl Components {
 
 impl Plugin for Components {
     fn build(&self, app: &mut App) {
-        app.register_type::<components::Body>()
-            .register_type::<components::Name>()
-            .register_type::<body_subparts::Vertebrae>()
+        app.register_type::<Body>()
+            .register_type::<Name>()
+            .register_type::<Vertebrae>()
             .register_type::<Vec<Vertebrae>>()
             .register_type::<[f32; 2]>()
             .register_type::<[f32; 4]>();
