@@ -1,75 +1,41 @@
-use std::borrow::Borrow;
+use bevy::*;
+use bevy_ecs::system::Commands;
 
-use winit::event_loop::EventLoop;
+use plugins::components::*;
 
-use vertex::Vertex;
-use vulkan::Vulkan;
-
-mod vulkan;
-mod vertex;
+mod plugins;
 
 fn main() {
-    let vertices = [
-        Vertex {
-            position: [0.0, 0.0, 0.0, 1.0],
-        },
-        Vertex {
-            position: [0.1, 0.1, 0.1, 1.0],
-        },
-        Vertex {
-            position: [0.2, 0.2, 0.2, 1.0],
-        },
-        Vertex {
-            position: [0.3, 0.3, 0.3, 1.0],
-        },
-    ];
+    let window_descriptor = window::WindowDescriptor {
+        width: 1280.0,
+        height: 800.0,
+        title: "Gamess9 Game".to_string(),
+        mode: window::WindowMode::Windowed,
+        ..Default::default()
+    };
 
-    let mut test = Test::new();
-
-    let event_loop = EventLoop::new();
-    let mut vulkan = Vulkan::new(&event_loop, vertices);
-
-    event_loop.run(move |event, _, control_flow| vulkan.event_handler(event, control_flow, &mut test));
+    app::App::new().add_plugin(core::CorePlugin::default())
+        .insert_non_send_resource(plugins::get_vulkano_config())
+        .add_plugin(log::LogPlugin::default())
+        .add_plugin(input::InputPlugin::default())
+        .add_plugin(time::TimePlugin::default())
+        .add_plugin(asset::AssetPlugin::default())
+        .add_plugin(scene::ScenePlugin::default())
+        .add_plugin(bevy_vulkano::VulkanoWinitPlugin { window_descriptor })
+        .add_plugin(plugins::VulkanPlugin::default())
+        .add_plugin(plugins::Components::default())
+        .add_plugin(plugins::SaveLoad::default())
+        .add_startup_system(add_entities)
+        .run();
 }
 
-#[derive(Clone, Copy)]
-pub struct Test {
-    pub vertices: [Vertex; 4],
+fn add_entities(mut commands: Commands) {
+    let vertebrae1 = Vertebrae { position: [0.0, 0.0, 0.0, 0.0], color: [0.0, 1.0, 0.0, 1.0] };
+    let vertebrae2 = Vertebrae { position: [0.1, 0.1, 0.0, 0.0], color: [1.0, 1.0, 0.0, 1.0] };
+    let vertebrae3 = Vertebrae { position: [0.5, 0.0, 0.0, 0.0], color: [1.0, 1.0, 1.0, 1.0] };
+    commands.spawn((Body { spine: vec![vertebrae1, vertebrae2, vertebrae3] }, Save::default()));
+    let vertebrae = Vertebrae { position: [-0.5, -0.5, 0.0, 0.0], color: [0.0, 0.0, 1.0, 1.0] };
+    commands.spawn((Body { spine: vec![vertebrae] }, Name("TestWithSpine".to_string()), Save::default()));
+    commands.spawn((Name("SpinelessOne".to_string()), Save::default()));
 }
 
-impl Test {
-    pub fn new() -> Self {
-        Self {
-            vertices: [
-                Vertex {
-                    position: [0.0, 0.0, 0.0, 1.0],
-                },
-                Vertex {
-                    position: [0.0, 0.0, 0.1, 1.0],
-                },
-                Vertex {
-                    position: [0.0, 0.0, 0.2, 1.0],
-                },
-                Vertex {
-                    position: [0.0, 0.0, 0.3, 1.0],
-                },
-            ]
-        }
-    }
-    pub fn get(&mut self) -> [Vertex; 4] {
-        for (i, vertex) in self.clone().vertices.iter().enumerate() {
-            for (j, _number) in vertex.position.iter().enumerate() {
-                if j < 2 {
-                    if rand::random::<bool>() {
-                        self.vertices[i].position[j] += rand::random::<f32>() / 100.0;
-                    } else {
-                        self.vertices[i].position[j] -= rand::random::<f32>() / 100.0;
-                    }
-                    if self.vertices[i].position[j] > 1.0 { self.vertices[i].position[j] = -1.0 };
-                    if self.vertices[i].position[j] < -1.0 { self.vertices[i].position[j] = 1.0 };
-                }
-            }
-        }
-        self.vertices
-    }
-}
